@@ -50,7 +50,7 @@ export default function CustomersPage({ notify, dataVersion }) {
     const q = search.trim().toLowerCase();
     const list = q
       ? customers.filter((c) =>
-          [c.name, c.email, c.phone, String(c.customer_id)].some((v) => v?.toLowerCase().includes(q)),
+          [c.name, c.email, c.phone, c.city, String(c.customer_id)].some((v) => v?.toLowerCase().includes(q)),
         )
       : customers;
     const { key, dir } = sort;
@@ -70,7 +70,7 @@ export default function CustomersPage({ notify, dataVersion }) {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return {
       total: customers.length,
-      withEmail: customers.filter((c) => c.email).length,
+      cities: new Set(customers.map((c) => c.city?.trim().toLowerCase()).filter(Boolean)).size,
       recent: customers.filter((c) => c.created_at && new Date(c.created_at).getTime() >= weekAgo).length,
     };
   }, [customers]);
@@ -131,8 +131,8 @@ export default function CustomersPage({ notify, dataVersion }) {
           <div className="stat-value">{stats.total}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">With email on file</div>
-          <div className="stat-value">{stats.withEmail}</div>
+          <div className="stat-label">Cities</div>
+          <div className="stat-value">{stats.cities}</div>
         </div>
         <div className="stat">
           <div className="stat-label">Added in last 7 days</div>
@@ -145,7 +145,7 @@ export default function CustomersPage({ notify, dataVersion }) {
           <div className="search">
             <SearchIcon />
             <input
-              placeholder="Search by name, email, phone or ID"
+              placeholder="Search by name, email, phone, city or ID"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -175,6 +175,7 @@ export default function CustomersPage({ notify, dataVersion }) {
                   <SortHeader k="name">Name</SortHeader>
                   <SortHeader k="email">Email</SortHeader>
                   <SortHeader k="phone">Phone</SortHeader>
+                  <SortHeader k="city">City</SortHeader>
                   <SortHeader k="created_at">Created</SortHeader>
                   <th className="right">Actions</th>
                 </tr>
@@ -183,14 +184,14 @@ export default function CustomersPage({ notify, dataVersion }) {
                 {loading && customers.length === 0 ? (
                   Array.from({ length: 5 }, (_, i) => (
                     <tr key={i}>
-                      <td colSpan={6}>
+                      <td colSpan={7}>
                         <div className="skeleton" />
                       </td>
                     </tr>
                   ))
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty">
+                    <td colSpan={7} className="empty">
                       {search ? `No customers match "${search}".` : "No customers yet. Add your first one."}
                     </td>
                   </tr>
@@ -206,6 +207,7 @@ export default function CustomersPage({ notify, dataVersion }) {
                       </td>
                       <td>{c.email || <span className="muted">—</span>}</td>
                       <td>{c.phone || <span className="muted">—</span>}</td>
+                      <td>{c.city || <span className="muted">—</span>}</td>
                       <td className="muted">{formatDate(c.created_at)}</td>
                       <td className="right">
                         <div className="row-actions">

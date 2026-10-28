@@ -587,6 +587,12 @@ tbody tr:last-child td {
   box-shadow: 0 0 0 3px rgb(79 70 229 / 0.12);
 }
 
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 .field-error {
   color: var(--danger);
   font-weight: 400;

@@ -11,23 +11,26 @@ const router = Router();
  *       type: object
  *       properties:
  *         customer_id: { type: integer, example: 1 }
- *         name: { type: string, example: Jane Doe }
- *         email: { type: string, nullable: true, example: jane@example.com }
- *         phone: { type: string, nullable: true, example: "9876543210" }
+ *         name: { type: string, example: Khalid Saeed }
+ *         email: { type: string, example: khalid.saeed@example.com }
+ *         phone: { type: string, nullable: true, example: "0501234567" }
+ *         city: { type: string, nullable: true, example: Riyadh }
  *         created_at: { type: string, format: date-time }
  *     CustomerInput:
  *       type: object
- *       required: [name]
+ *       required: [name, email]
  *       properties:
- *         name: { type: string, example: Jane Doe }
- *         email: { type: string, example: jane@example.com }
- *         phone: { type: string, example: "9876543210" }
+ *         name: { type: string, maxLength: 100, example: Sara Ali }
+ *         email: { type: string, maxLength: 150, description: Must be unique, example: sara.ali@example.com }
+ *         phone: { type: string, maxLength: 20, example: "0509876543" }
+ *         city: { type: string, maxLength: 50, example: Jeddah }
  *     CustomerUpdate:
  *       type: object
  *       properties:
- *         name: { type: string, example: Jane Smith }
- *         email: { type: string, example: jane.smith@example.com }
- *         phone: { type: string, example: "9876500000" }
+ *         name: { type: string, maxLength: 100, example: Sara Ali }
+ *         email: { type: string, maxLength: 150, example: sara.new@example.com }
+ *         phone: { type: string, maxLength: 20, example: "0509876500" }
+ *         city: { type: string, maxLength: 50, example: Dammam }
  *     Error:
  *       type: object
  *       properties:
@@ -44,7 +47,7 @@ const router = Router();
  *       - in: query
  *         name: search
  *         schema: { type: string }
- *         description: Optional case-insensitive filter on name, email or phone
+ *         description: Optional case-insensitive filter on name, email, phone or city
  *     responses:
  *       200:
  *         description: Array of customers
@@ -150,6 +153,11 @@ router.get("/:id", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
+ *       409:
+ *         description: Email already in use
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post("/", async (req, res, next) => {
   try {
@@ -185,6 +193,8 @@ router.post("/", async (req, res, next) => {
  *         description: Validation error
  *       404:
  *         description: Not found
+ *       409:
+ *         description: Email already in use
  */
 router.put("/:id", async (req, res, next) => {
   try {

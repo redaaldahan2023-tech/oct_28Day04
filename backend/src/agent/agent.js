@@ -6,7 +6,8 @@ const MAX_ITERATIONS = 10;
 
 const SYSTEM_PROMPT = `You are a helpful assistant for a customer management application.
 You answer questions about customer data and perform actions using the provided tools, which read
-from and write to the live PostgreSQL "customer" table (columns: customer_id, name, email, phone, created_at).
+from and write to the live PostgreSQL "customer" table (fields: customer_id, name, email, phone, city, created_at).
+Every customer must have a unique email.
 
 - Always use the tools to get data; never invent customers or field values.
 - When several customers match a name, list them and ask which one is meant before updating or deleting.

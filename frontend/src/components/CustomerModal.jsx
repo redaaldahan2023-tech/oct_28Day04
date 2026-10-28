@@ -9,6 +9,7 @@ export default function CustomerModal({ customer, onSave, onClose }) {
     name: customer.name ?? "",
     email: customer.email ?? "",
     phone: customer.phone ?? "",
+    city: customer.city ?? "",
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -26,8 +27,9 @@ export default function CustomerModal({ customer, onSave, onClose }) {
     e.preventDefault();
     const next = {};
     if (!form.name.trim()) next.name = "Name is required";
-    if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) next.email = "Enter a valid email address";
-    if (form.phone.trim() && !/^[0-9+\-() ]{3,30}$/.test(form.phone.trim()))
+    if (!form.email.trim()) next.email = "Email is required";
+    else if (!EMAIL_RE.test(form.email.trim())) next.email = "Enter a valid email address";
+    if (form.phone.trim() && !/^[0-9+\-() ]+$/.test(form.phone.trim()))
       next.phone = "Digits, spaces and + - ( ) only";
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -35,7 +37,12 @@ export default function CustomerModal({ customer, onSave, onClose }) {
     setSaving(true);
     setServerError("");
     try {
-      await onSave({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() });
+      await onSave({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        city: form.city.trim(),
+      });
     } catch (err) {
       setServerError(err.message);
       setSaving(false);
@@ -58,19 +65,33 @@ export default function CustomerModal({ customer, onSave, onClose }) {
             <span>
               Full name <em>*</em>
             </span>
-            <input autoFocus value={form.name} onChange={set("name")} placeholder="Jane Doe" />
+            <input autoFocus maxLength={100} value={form.name} onChange={set("name")} placeholder="Sara Ali" />
             {errors.name && <small className="field-error">{errors.name}</small>}
           </label>
           <label className="field">
-            <span>Email</span>
-            <input type="email" value={form.email} onChange={set("email")} placeholder="jane@example.com" />
+            <span>
+              Email <em>*</em>
+            </span>
+            <input
+              type="email"
+              maxLength={150}
+              value={form.email}
+              onChange={set("email")}
+              placeholder="sara.ali@example.com"
+            />
             {errors.email && <small className="field-error">{errors.email}</small>}
           </label>
-          <label className="field">
-            <span>Phone</span>
-            <input value={form.phone} onChange={set("phone")} placeholder="9876543210" />
-            {errors.phone && <small className="field-error">{errors.phone}</small>}
-          </label>
+          <div className="field-row">
+            <label className="field">
+              <span>Phone</span>
+              <input maxLength={20} value={form.phone} onChange={set("phone")} placeholder="0509876543" />
+              {errors.phone && <small className="field-error">{errors.phone}</small>}
+            </label>
+            <label className="field">
+              <span>City</span>
+              <input maxLength={50} value={form.city} onChange={set("city")} placeholder="Riyadh" />
+            </label>
+          </div>
         </div>
 
         <div className="modal-footer">

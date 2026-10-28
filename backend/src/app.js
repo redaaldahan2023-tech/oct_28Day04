@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { swaggerSpec, swaggerHtml } from "./swagger.js";
-import { pool } from "./db.js";
+import { query } from "./db.js";
 import customerRoutes from "./routes/customers.js";
 import agentRoutes from "./routes/agent.js";
 
@@ -32,7 +32,7 @@ app.get(["/swagger", "/swagger/"], (_req, res) => res.type("html").send(swaggerH
 app.get("/api/health", async (_req, res) => {
   let database = "ok";
   try {
-    await pool.query("SELECT 1");
+    await query("SELECT 1");
   } catch {
     database = "unreachable";
   }

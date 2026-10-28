@@ -73,7 +73,7 @@ How it works: `backend/api/index.js` exports the Express app as a serverless fun
 | GET    | `/api/customers?search=`               | List customers (optional filter)     |
 | GET    | `/api/customers/search/by-name?name=`  | Find customers by partial name       |
 | GET    | `/api/customers/{id}`                  | Get one customer                     |
-| POST   | `/api/customers`                       | Create (`name` required)             |
+| POST   | `/api/customers`                       | Create (`name` and unique `email` required) |
 | PUT    | `/api/customers/{id}`                  | Update provided fields               |
 | DELETE | `/api/customers/{id}`                  | Delete                               |
 | POST   | `/api/agent/chat`                      | Natural-language assistant           |
@@ -86,4 +86,5 @@ Claude runs a tool-use loop over these tools, which call the same service layer 
 `get_all_customers`, `get_customer_by_name`, `get_customer_by_id`, `add_customer`, `update_customer`, `delete_customer`.
 The response includes `reply` (markdown), `toolCalls`, and `dataChanged` (the frontend uses this to refresh the table).
 
-Table: `customer(customer_id serial, name varchar not null, email, phone, created_at default now())`.
+Table: `customer(id serial primary key, name varchar(100) not null, email varchar(150) not null unique, phone varchar(20), city varchar(50), created_at default now())`.
+The API returns the primary key as `customer_id`.

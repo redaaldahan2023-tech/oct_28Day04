@@ -5,8 +5,8 @@ export const tools = [
   {
     name: "get_all_customers",
     description:
-      "Return every customer in the database (id, name, email, phone, created_at). " +
-      "Use for questions about all customers, counts, or listing.",
+      "Return every customer in the database (customer_id, name, email, phone, city, created_at). " +
+      "Use for questions about all customers, counts, cities, or listing.",
     input_schema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -33,22 +33,25 @@ export const tools = [
   },
   {
     name: "add_customer",
-    description: "Create a new customer. name is required; email and phone are optional.",
+    description:
+      "Create a new customer. name and email are required (email must be unique); phone and city are optional. " +
+      "If the user did not give an email, ask for one instead of inventing it.",
     input_schema: {
       type: "object",
       properties: {
         name: { type: "string" },
         email: { type: "string" },
         phone: { type: "string" },
+        city: { type: "string" },
       },
-      required: ["name"],
+      required: ["name", "email"],
       additionalProperties: false,
     },
   },
   {
     name: "update_customer",
     description:
-      "Update an existing customer's name, email and/or phone by customer_id. " +
+      "Update an existing customer's name, email, phone and/or city by customer_id. " +
       "Only the fields provided are changed. Look the customer up first if you only know the name.",
     input_schema: {
       type: "object",
@@ -57,6 +60,7 @@ export const tools = [
         name: { type: "string" },
         email: { type: "string" },
         phone: { type: "string" },
+        city: { type: "string" },
       },
       required: ["customer_id"],
       additionalProperties: false,

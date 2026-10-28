@@ -6,9 +6,9 @@ import { SendIcon, SparkIcon, ToolIcon } from "./Icons.jsx";
 
 const SUGGESTIONS = [
   "Get all customers",
-  "Find the customer named Kannan",
-  "How many customers don't have a phone number?",
-  "Add a customer named Sara Ali with email sara.ali@example.com",
+  "Find the customer named Khalid",
+  "How many customers are in each city?",
+  "Add a customer named Sara Ali, email sara.ali@example.com, city Jeddah",
 ];
 
 const TOOL_LABELS = {
