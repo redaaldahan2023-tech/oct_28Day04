@@ -1,0 +1,16 @@
+# Dependencies & build output
+node_modules/
+dist/
+.vercel/
+
+# Secrets: never commit real env files (the .env.example templates are safe)
+.env
+.env.*
+!.env.example
+
+# Logs & OS/editor files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
