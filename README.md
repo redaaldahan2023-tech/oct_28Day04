@@ -36,6 +36,36 @@ npm run dev
 
 Frontend `.env`: `VITE_API_URL=http://localhost:4000`.
 
+## Deploying to Vercel
+
+The repo holds two apps, so create **two Vercel projects** from the same GitHub repo, each with its own **Root Directory**.
+
+### 1. Backend (deploy first)
+
+- New Project → import the repo → **Root Directory: `backend`** → Framework Preset: **Other** (already set by `backend/vercel.json`).
+- Environment variables:
+
+  | Name                | Value                                                      |
+  | ------------------- | ---------------------------------------------------------- |
+  | `DATABASE_URL`      | your PostgreSQL connection string                          |
+  | `ANTHROPIC_API_KEY` | your Anthropic key                                         |
+  | `CORS_ORIGIN`       | the frontend URL, e.g. `https://your-frontend.vercel.app` (use `*` until you know it) |
+
+- After deploying, check `https://<backend>.vercel.app/api/health` and `https://<backend>.vercel.app/swagger`.
+
+How it works: `backend/api/index.js` exports the Express app as a serverless function, and `vercel.json` rewrites every path to it, so `/swagger`, `/swagger.json` and `/api/*` all behave as they do locally. Swagger UI loads its assets from the jsDelivr CDN, and the spec uses a relative server URL so **Try it out** calls whatever host serves the page.
+
+### 2. Frontend
+
+- New Project → same repo → **Root Directory: `frontend`** → Framework Preset: **Vite** (auto-detected).
+- Environment variable: `VITE_API_URL` = `https://<backend>.vercel.app` (no trailing slash). It's read at build time, so **redeploy** after changing it.
+- Then set the backend's `CORS_ORIGIN` to this frontend URL and redeploy the backend.
+
+### Notes
+
+- `.env` files are git-ignored; secrets live only in Vercel's environment variable settings.
+- The chat endpoint's function timeout is 60 s (`maxDuration` in `backend/vercel.json`).
+
 ## API
 
 | Method | Path                                   | Description                          |
