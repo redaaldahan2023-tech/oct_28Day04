@@ -55,6 +55,7 @@ const router = Router();
  *       400:
  *         description: Missing message
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       503:
  *         description: Anthropic API key not configured
  */

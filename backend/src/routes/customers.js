@@ -52,6 +52,7 @@ const router = Router();
  *         description: Optional case-insensitive filter on name, email, phone or city
  *     responses:
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       200:
  *         description: Array of customers
  *         content:
@@ -82,6 +83,7 @@ router.get("/", async (req, res, next) => {
  *         schema: { type: string }
  *     responses:
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       200:
  *         description: Matching customers
  *         content:
@@ -117,6 +119,7 @@ router.get("/search/by-name", async (req, res, next) => {
  *         schema: { type: integer }
  *     responses:
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       200:
  *         description: The customer
  *         content:
@@ -152,6 +155,7 @@ router.get("/:id", async (req, res, next) => {
  *           schema: { $ref: '#/components/schemas/CustomerInput' }
  *     responses:
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       201:
  *         description: Created customer
  *         content:
@@ -195,6 +199,7 @@ router.post("/", async (req, res, next) => {
  *           schema: { $ref: '#/components/schemas/CustomerUpdate' }
  *     responses:
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       200:
  *         description: Updated customer
  *         content:
@@ -231,6 +236,7 @@ router.put("/:id", async (req, res, next) => {
  *         schema: { type: integer }
  *     responses:
  *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
  *       200:
  *         description: The deleted customer
  *         content:

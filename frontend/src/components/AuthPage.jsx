@@ -1,23 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ADMIN_HASH = "#/admin";
 
+const SUBTITLES = {
+  login: "Sign in to your account",
+  register: "Create a sales account",
+  admin: "Admin console",
+};
+
+// Three separate forms: sales sign-in, sales registration and the admin sign-in (#/admin).
 export default function AuthPage({ onAuthenticated }) {
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(() => (window.location.hash === ADMIN_HASH ? "admin" : "login"));
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [busy, setBusy] = useState(false);
   const isRegister = mode === "register";
+  const isAdmin = mode === "admin";
+
+  // Keep the URL in sync so #/admin can be bookmarked, and follow manual hash changes.
+  useEffect(() => {
+    const onHash = () => switchMode(window.location.hash === ADMIN_HASH ? "admin" : "login");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const switchMode = () => {
-    setMode(isRegister ? "login" : "register");
+  function switchMode(next) {
+    setMode(next);
     setErrors({});
     setServerError("");
-  };
+    const hash = next === "admin" ? ADMIN_HASH : "";
+    if (window.location.hash !== hash) history.replaceState(null, "", hash || window.location.pathname);
+  }
 
   const submit = async (e) => {
     e.preventDefault();
@@ -36,7 +54,9 @@ export default function AuthPage({ onAuthenticated }) {
       const credentials = { email: form.email.trim(), password: form.password };
       const res = isRegister
         ? await api.register({ name: form.name.trim(), ...credentials })
-        : await api.login(credentials);
+        : isAdmin
+          ? await api.adminLogin(credentials)
+          : await api.login(credentials);
       onAuthenticated(res);
     } catch (err) {
       setServerError(err.message);
@@ -46,12 +66,12 @@ export default function AuthPage({ onAuthenticated }) {
 
   return (
     <div className="auth-screen">
-      <form className="auth-card" onSubmit={submit} noValidate>
+      <form className={`auth-card ${isAdmin ? "admin" : ""}`} onSubmit={submit} noValidate>
         <div className="brand auth-brand">
-          <div className="brand-mark">C</div>
+          <div className="brand-mark">{isAdmin ? "A" : "C"}</div>
           <div>
             <div className="brand-name">Customer Hub</div>
-            <div className="brand-sub">{isRegister ? "Create a sales account" : "Sign in to your account"}</div>
+            <div className="brand-sub">{SUBTITLES[mode]}</div>
           </div>
         </div>
 
@@ -71,12 +91,13 @@ export default function AuthPage({ onAuthenticated }) {
             Email <em>*</em>
           </span>
           <input
+            key={mode}
             type="email"
             autoFocus={!isRegister}
             maxLength={150}
             value={form.email}
             onChange={set("email")}
-            autoComplete="email"
+            autoComplete={isAdmin ? "off" : "email"}
           />
           {errors.email && <small className="field-error">{errors.email}</small>}
         </label>
@@ -94,15 +115,30 @@ export default function AuthPage({ onAuthenticated }) {
         </label>
 
         <button type="submit" className="btn primary auth-submit" disabled={busy}>
-          {busy ? "Please wait…" : isRegister ? "Create account" : "Sign in"}
+          {busy ? "Please wait…" : isRegister ? "Create account" : isAdmin ? "Sign in as admin" : "Sign in"}
         </button>
 
-        <p className="muted auth-switch">
-          {isRegister ? "Already have an account?" : "New here?"}{" "}
-          <button type="button" className="link-btn" onClick={switchMode}>
-            {isRegister ? "Sign in" : "Create an account"}
-          </button>
-        </p>
+        {isAdmin ? (
+          <p className="muted auth-switch">
+            <button type="button" className="link-btn" onClick={() => switchMode("login")}>
+              ← Back to sales sign in
+            </button>
+          </p>
+        ) : (
+          <>
+            <p className="muted auth-switch">
+              {isRegister ? "Already have an account?" : "New here?"}{" "}
+              <button type="button" className="link-btn" onClick={() => switchMode(isRegister ? "login" : "register")}>
+                {isRegister ? "Sign in" : "Create an account"}
+              </button>
+            </p>
+            <p className="muted auth-switch auth-admin-link">
+              <button type="button" className="link-btn" onClick={() => switchMode("admin")}>
+                Admin sign in
+              </button>
+            </p>
+          </>
+        )}
       </form>
     </div>
   );

@@ -11,6 +11,8 @@ Swagger UI: **http://localhost:4000/swagger** (raw spec at `/swagger.json`).
 
 Users register and log in; every user has the role `sales` and sees and manages only the customers assigned to them — in the UI, the REST API and the AI assistant.
 
+Admins sign in separately (the "Admin sign in" link, or open the app at `#/admin`) and get a read-only dashboard of all sales users with the number of customers each one has. `npm run migrate` creates the default admin **`admin@admin.com` / `123456789`** if it doesn't exist — set `ADMIN_PASSWORD` (and optionally `ADMIN_EMAIL`) before migrating any deployed database, since that password is well known.
+
 ## Setup
 
 ```bash
@@ -18,7 +20,7 @@ Users register and log in; every user has the role `sales` and sees and manages 
 cd backend
 npm install
 # edit .env: DATABASE_URL, JWT_SECRET, ANTHROPIC_API_KEY
-npm run migrate    # once: creates app_user and adds customer.sales_user_id (safe to re-run)
+npm run migrate    # creates/updates the tables and the default admin (safe to re-run)
 npm run dev        # or: npm start
 
 # 2. Frontend (second terminal)
@@ -36,6 +38,8 @@ npm run dev
 | `DATABASE_SSL`      | Optional. SSL is off for `localhost` URLs and on otherwise; set `false`/`true` to override |
 | `JWT_SECRET`        | Required. Long random string that signs login tokens       |
 | `JWT_EXPIRES_IN`    | Token lifetime, defaults to `8h`                           |
+| `ADMIN_EMAIL`       | Default admin seeded by `npm run migrate`, defaults to `admin@admin.com` |
+| `ADMIN_PASSWORD`    | Its initial password, defaults to `123456789` — override on deployed databases |
 | `ANTHROPIC_API_KEY` | Required for the `/api/agent/chat` endpoint                |
 | `ANTHROPIC_MODEL`   | Defaults to `claude-opus-5-5`                              |
 | `AGENT_EFFORT`      | Agent effort level (`low`–`max`), defaults to `medium`     |
@@ -76,13 +80,15 @@ How it works: `backend/api/index.js` exports the Express app as a serverless fun
 
 ## API
 
-Everything under `/api/customers` and `/api/agent` needs `Authorization: Bearer <token>`. Another user's customer answers `404`, the same as one that doesn't exist.
+Everything under `/api/customers` and `/api/agent` needs a **sales** user's `Authorization: Bearer <token>`. Another user's customer answers `404`, the same as one that doesn't exist. Admin tokens get `403` there, and sales tokens get `403` on `/api/admin/users`.
 
 | Method | Path                                   | Description                          |
 | ------ | -------------------------------------- | ------------------------------------ |
 | POST   | `/api/auth/register`                   | Create a `sales` user → `{ user, token }` |
-| POST   | `/api/auth/login`                      | Log in → `{ user, token }`           |
+| POST   | `/api/auth/login`                      | Sales log in → `{ user, token }`     |
 | GET    | `/api/auth/me`                         | The logged-in user                   |
+| POST   | `/api/admin/login`                     | Admin log in → `{ user, token }`     |
+| GET    | `/api/admin/users`                     | Admin dashboard: `{ totals, users }` with each sales user's `customer_count` |
 | GET    | `/api/customers?search=`               | List your customers (optional filter) |
 | GET    | `/api/customers/search/by-name?name=`  | Find customers by partial name       |
 | GET    | `/api/customers/{id}`                  | Get one customer                     |
@@ -97,6 +103,7 @@ Everything under `/api/customers` and `/api/agent` needs `Authorization: Bearer 
 1. Open `/swagger`, run **POST /api/auth/register** (or **login**) and copy `token` from the response.
 2. Click **Authorize**, paste the token, confirm. It's kept across page reloads.
 3. The customer and agent endpoints now run as that user. Register a second user, authorize as them, and their `GET /api/customers` won't include the first user's customers; `GET/PUT/DELETE /api/customers/{id}` on those IDs returns `404`.
+4. Admin: run **POST /api/admin/login** with `admin@admin.com` / `123456789`, **Authorize** with that token, then **GET /api/admin/users**. With a sales token it returns `403`.
 
 With curl:
 
@@ -115,7 +122,7 @@ The response includes `reply` (markdown), `toolCalls`, and `dataChanged` (the fr
 
 Tables (see `backend/db/migrations/001_auth.sql`):
 
-- `app_user(id serial primary key, name, email unique, password_hash, role default 'sales', created_at)` — returned as `user_id`; the hash is never returned.
+- `app_user(id serial primary key, name, email unique, password_hash, role 'sales' | 'admin' default 'sales', created_at)` — returned as `user_id`; the hash is never returned.
 - `customer(id serial primary key, name varchar(100) not null, email varchar(150) not null unique, phone varchar(20), city varchar(50), created_at default now(), sales_user_id references app_user)` — returned as `customer_id`.
 
 Customers that existed before the migration have no `sales_user_id` and are visible to no one. To give them to a user: `UPDATE customer SET sales_user_id = <user id> WHERE sales_user_id IS NULL;`

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { registerUser, authenticate } from "../services/userService.js";
-import { signToken, requireAuth, authConfigured } from "../auth.js";
+import { issueSession, requireAuth, requireAuthConfigured } from "../auth.js";
 
 const router = Router();
 
@@ -20,7 +20,7 @@ const router = Router();
  *         user_id: { type: integer, example: 1 }
  *         name: { type: string, example: Reda Aldahan }
  *         email: { type: string, example: reda@example.com }
- *         role: { type: string, enum: [sales], example: sales }
+ *         role: { type: string, enum: [sales, admin], example: sales }
  *         created_at: { type: string, format: date-time }
  *     RegisterInput:
  *       type: object
@@ -48,15 +48,14 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema: { $ref: '#/components/schemas/Error' }
+ *     Forbidden:
+ *       description: Logged in, but this account's role may not use this endpoint
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/Error' }
  */
 
-// Fail early with 503 instead of creating an account we can't issue a token for.
-router.use((_req, _res, next) => {
-  if (authConfigured()) return next();
-  const err = new Error("JWT_SECRET is not set in backend/.env");
-  err.status = 503;
-  next(err);
-});
+router.use(requireAuthConfigured);
 
 /**
  * @openapi
@@ -88,8 +87,7 @@ router.use((_req, _res, next) => {
  */
 router.post("/register", async (req, res, next) => {
   try {
-    const user = await registerUser(req.body ?? {});
-    res.status(201).json({ user, token: signToken(user) });
+    res.status(201).json(issueSession(await registerUser(req.body ?? {})));
   } catch (err) {
     next(err);
   }
@@ -100,7 +98,8 @@ router.post("/register", async (req, res, next) => {
  * /api/auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Log in and receive a token
+ *     summary: Log in as a sales user and receive a token
+ *     description: Admin accounts must use /api/admin/login instead.
  *     requestBody:
  *       required: true
  *       content:
@@ -121,8 +120,7 @@ router.post("/register", async (req, res, next) => {
 router.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body ?? {};
-    const user = await authenticate(email, password);
-    res.json({ user, token: signToken(user) });
+    res.json(issueSession(await authenticate(email, password, "sales")));
   } catch (err) {
     next(err);
   }

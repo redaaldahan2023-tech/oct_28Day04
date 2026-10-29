@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, API_URL, hasToken, setToken, setUnauthorizedHandler } from "./api.js";
 import AuthPage from "./components/AuthPage.jsx";
+import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomersPage from "./components/CustomersPage.jsx";
 import ChatPage from "./components/ChatPage.jsx";
 import { ChatIcon, UsersIcon } from "./components/Icons.jsx";
 
-const NAV = [
+const SALES_NAV = [
   { id: "customers", label: "Customers", icon: UsersIcon },
   { id: "assistant", label: "AI Assistant", icon: ChatIcon },
 ];
+const ADMIN_NAV = [{ id: "dashboard", label: "Dashboard", icon: UsersIcon }];
 
 export default function App() {
   // undefined while restoring the session, null when logged out.
@@ -29,6 +31,8 @@ export default function App() {
     setToken(null);
     setUser(null);
     setPage("customers");
+    // Leave the admin sign-in URL so the next visitor lands on the sales sign-in.
+    if (window.location.hash) history.replaceState(null, "", window.location.pathname);
   }, []);
 
   const onAuthenticated = ({ user, token }) => {
@@ -70,6 +74,9 @@ export default function App() {
     </div>
   );
 
+  const isAdmin = user?.role === "admin";
+  const nav = isAdmin ? ADMIN_NAV : SALES_NAV;
+
   if (user === undefined) return <div className="auth-screen muted">Loading…</div>;
 
   if (!user) {
@@ -88,14 +95,14 @@ export default function App() {
           <div className="brand-mark">C</div>
           <div>
             <div className="brand-name">Customer Hub</div>
-            <div className="brand-sub">Management console</div>
+            <div className="brand-sub">{isAdmin ? "Admin console" : "Management console"}</div>
           </div>
         </div>
         <nav className="nav">
-          {NAV.map(({ id, label, icon: Icon }) => (
+          {nav.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              className={`nav-item ${page === id ? "active" : ""}`}
+              className={`nav-item ${isAdmin || page === id ? "active" : ""}`}
               onClick={() => setPage(id)}
             >
               <Icon />
@@ -118,7 +125,7 @@ export default function App() {
             <span className={`dot ${health === null ? "" : online ? "ok" : "bad"}`} />
             {health === null ? "Checking API…" : online ? "API connected" : "API unavailable"}
           </div>
-          {health && online && !health.agentConfigured && (
+          {!isAdmin && health && online && !health.agentConfigured && (
             <div className="status warn">Assistant needs an API key</div>
           )}
           <a className="swagger-link" href={`${API_URL}/swagger`} target="_blank" rel="noreferrer">
@@ -129,13 +136,19 @@ export default function App() {
 
       {/* Keyed by user so a different login starts with fresh pages and an empty chat. */}
       <main className="main" key={user.user_id}>
-        {/* Both pages stay mounted so the chat history survives switching tabs. */}
-        <div hidden={page !== "customers"}>
-          <CustomersPage notify={notify} dataVersion={dataVersion} />
-        </div>
-        <div hidden={page !== "assistant"} className="chat-wrap">
-          <ChatPage onDataChanged={() => setDataVersion((v) => v + 1)} />
-        </div>
+        {isAdmin ? (
+          <AdminDashboard />
+        ) : (
+          <>
+            {/* Both pages stay mounted so the chat history survives switching tabs. */}
+            <div hidden={page !== "customers"}>
+              <CustomersPage notify={notify} dataVersion={dataVersion} />
+            </div>
+            <div hidden={page !== "assistant"} className="chat-wrap">
+              <ChatPage onDataChanged={() => setDataVersion((v) => v + 1)} />
+            </div>
+          </>
+        )}
       </main>
 
       {toastList}

@@ -29,7 +29,13 @@ function unauthorized() {
   return err;
 }
 
-// Verifies the bearer token and loads the user, so a deleted account loses access immediately.
+export function issueSession(user) {
+  return { user, token: signToken(user) };
+}
+
+// Verifies the bearer token and re-reads the user on every request, so a deleted account loses
+// access immediately and a role change applies to existing tokens. req.user.role must always
+// come from this query, never from the token payload.
 export async function requireAuth(req, _res, next) {
   try {
     const [scheme, token] = (req.headers.authorization ?? "").split(" ");
@@ -49,4 +55,22 @@ export async function requireAuth(req, _res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+// Use after requireAuth.
+export function requireRole(role) {
+  return (req, _res, next) => {
+    if (req.user?.role === role) return next();
+    const err = new Error("Forbidden");
+    err.status = 403;
+    next(err);
+  };
+}
+
+// Auth endpoints fail early with 503 instead of doing work they can't issue a token for.
+export function requireAuthConfigured(_req, _res, next) {
+  if (authConfigured()) return next();
+  const err = new Error("JWT_SECRET is not set in backend/.env");
+  err.status = 503;
+  next(err);
 }

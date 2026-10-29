@@ -16,12 +16,15 @@ export const swaggerSpec = swaggerJsdoc({
         "endpoint that answers natural-language questions about customers.\n\n" +
         "**Authentication:** call `POST /api/auth/register` or `POST /api/auth/login`, copy the `token`, " +
         "click **Authorize** and paste it. Customer and agent endpoints then run as that user and only " +
-        "see or change that user's customers; another user's customer returns 404.",
+        "see or change that user's customers; another user's customer returns 404.\n\n" +
+        "**Admins** log in at `POST /api/admin/login` instead and can use only the Admin endpoints; " +
+        "sales users get 403 there, and admins get 403 on the customer and agent endpoints.",
     },
     // Relative URL so "Try it out" calls whichever host serves the docs (localhost or Vercel).
     servers: [{ url: "/" }],
     tags: [
       { name: "Auth", description: "Registration and login" },
+      { name: "Admin", description: "Admin login and user dashboard" },
       { name: "Customers", description: "Customer CRUD, scoped to the logged-in user" },
       { name: "Agent", description: "Natural-language assistant" },
       { name: "System", description: "Health checks" },

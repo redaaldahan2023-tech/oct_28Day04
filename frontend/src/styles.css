@@ -1047,3 +1047,29 @@ tbody tr:last-child td {
 .logout-btn:hover {
   background: rgb(255 255 255 / 0.08);
 }
+
+/* ---------- Admin ---------- */
+.auth-card.admin {
+  border-top: 3px solid var(--primary);
+}
+
+.auth-admin-link {
+  margin-top: -8px;
+  font-size: 12.5px;
+}
+
+.count-badge {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+  text-align: center;
+}
+
+.count-badge.zero {
+  background: var(--surface-2);
+  color: var(--muted);
+}

@@ -3,8 +3,9 @@ import express from "express";
 import cors from "cors";
 import { swaggerSpec, swaggerHtml } from "./swagger.js";
 import { query } from "./db.js";
-import { requireAuth, authConfigured } from "./auth.js";
+import { requireAuth, requireRole, authConfigured } from "./auth.js";
 import authRoutes from "./routes/auth.js";
+import adminRoutes from "./routes/admin.js";
 import customerRoutes from "./routes/customers.js";
 import agentRoutes from "./routes/agent.js";
 
@@ -47,9 +48,11 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-// Everything below requires a logged-in user; req.user scopes every query.
-app.use("/api/customers", requireAuth, customerRoutes);
-app.use("/api/agent", requireAuth, agentRoutes);
+// Admin login is public; the admin router guards its other routes itself.
+app.use("/api/admin", adminRoutes);
+// Sales users only; req.user scopes every query. Admins own no customers and get 403.
+app.use("/api/customers", requireAuth, requireRole("sales"), customerRoutes);
+app.use("/api/agent", requireAuth, requireRole("sales"), agentRoutes);
 
 app.get("/", (_req, res) => res.redirect("/swagger"));
 
