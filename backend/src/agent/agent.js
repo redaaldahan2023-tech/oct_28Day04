@@ -2,7 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { tools, executeTool, MUTATING_TOOLS } from "./tools.js";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+const EFFORT = process.env.AGENT_EFFORT || "medium";
 const MAX_ITERATIONS = 10;
+// Haiku has no server-side refusal fallback, so only send it for other models.
+const FALLBACK = MODEL.startsWith("claude-haiku")
+  ? {}
+  : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
 
 const SYSTEM_PROMPT = `You are a helpful assistant for a customer management application.
 You answer questions about customer data and perform actions using the provided tools, which read
@@ -49,10 +54,9 @@ export async function runAgent(message, history = []) {
       system: SYSTEM_PROMPT,
       tools,
       messages,
-      output_config: { effort: "medium" },
+      output_config: { effort: EFFORT },
       // Server-side refusal fallback: if the model declines, the API reroutes automatically.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      ...FALLBACK,
     });
 
     messages.push({ role: "assistant", content: response.content });

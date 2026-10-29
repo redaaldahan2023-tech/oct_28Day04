@@ -32,6 +32,7 @@ npm run dev
 | `DATABASE_URL`      | PostgreSQL connection string (Render, SSL enabled)         |
 | `ANTHROPIC_API_KEY` | Required for the `/api/agent/chat` endpoint                |
 | `ANTHROPIC_MODEL`   | Defaults to `claude-opus-5-5`                              |
+| `AGENT_EFFORT`      | Agent effort level (`low`–`max`), defaults to `medium`     |
 | `CORS_ORIGIN`       | Allowed frontend origin(s), comma-separated, or `*`        |
 
 Frontend `.env`: `VITE_API_URL=http://localhost:4000`.
