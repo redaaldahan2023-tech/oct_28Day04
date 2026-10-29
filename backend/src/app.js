@@ -15,7 +15,13 @@ const app = express();
 
 // CORS: allow the configured frontend origin(s); "*" allows any origin.
 const origins = (process.env.CORS_ORIGIN || "*").split(",").map((o) => o.trim().replace(/\/$/, ""));
-app.use(cors({ origin: origins.includes("*") ? "*" : origins }));
+// The export's filename and row count are read by the frontend, which runs on another origin.
+app.use(
+  cors({
+    origin: origins.includes("*") ? "*" : origins,
+    exposedHeaders: ["Content-Disposition", "X-Export-Count"],
+  }),
+);
 app.use(express.json());
 
 // Swagger UI loads its assets from a CDN, so nothing has to be served from node_modules.

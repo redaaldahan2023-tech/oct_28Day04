@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
 import CustomerModal from "./CustomerModal.jsx";
 import ConfirmDialog from "./ConfirmDialog.jsx";
-import { EditIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon } from "./Icons.jsx";
+import { DownloadIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon } from "./Icons.jsx";
 
 const PAGE_SIZE = 10;
 
@@ -29,6 +29,7 @@ export default function CustomersPage({ notify, dataVersion }) {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null); // null | {} (new) | customer
   const [deleting, setDeleting] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,6 +105,26 @@ export default function CustomersPage({ notify, dataVersion }) {
     }
   };
 
+  // Exports what the search box shows; the server applies the same filter to the user's customers.
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { count } = await api.exportCustomers(search.trim());
+      notify(`Exported ${count} customer${count === 1 ? "" : "s"} to Excel`);
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportTitle =
+    customers.length === 0
+      ? "No customers to export"
+      : search.trim()
+        ? `Exports customers matching "${search.trim()}"`
+        : "Exports all your customers";
+
   const SortHeader = ({ k, children }) => (
     <th>
       <button className="th-btn" onClick={() => toggleSort(k)}>
@@ -120,9 +141,19 @@ export default function CustomersPage({ notify, dataVersion }) {
           <h1>Customers</h1>
           <p className="muted">Create, view, update and delete the customers assigned to you.</p>
         </div>
-        <button className="btn primary" onClick={() => setEditing({})}>
-          <PlusIcon /> Add customer
-        </button>
+        <div className="header-actions">
+          <button
+            className="btn"
+            onClick={handleExport}
+            disabled={exporting || loading || customers.length === 0}
+            title={exportTitle}
+          >
+            <DownloadIcon /> {exporting ? "Exporting…" : "Export to Excel"}
+          </button>
+          <button className="btn primary" onClick={() => setEditing({})}>
+            <PlusIcon /> Add customer
+          </button>
+        </div>
       </header>
 
       <section className="stats">

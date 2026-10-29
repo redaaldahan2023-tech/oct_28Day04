@@ -44,6 +44,12 @@ export const TrashIcon = (p) => (
     <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
   </svg>
 );
+export const DownloadIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="M7 10l5 5 5-5M12 15V3" />
+  </svg>
+);
 export const RefreshIcon = (p) => (
   <svg {...base} {...p}>
     <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />

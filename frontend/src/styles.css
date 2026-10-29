@@ -1073,3 +1073,10 @@ tbody tr:last-child td {
   background: var(--surface-2);
   color: var(--muted);
 }
+
+/* ---------- Export ---------- */
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

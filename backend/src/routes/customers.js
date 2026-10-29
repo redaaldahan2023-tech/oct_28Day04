@@ -1,5 +1,8 @@
 import { Router } from "express";
 import * as customers from "../services/customerService.js";
+import { buildCustomersWorkbook } from "../services/exportService.js";
+
+const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 const router = Router();
 
@@ -100,6 +103,54 @@ router.get("/", async (req, res, next) => {
 router.get("/search/by-name", async (req, res, next) => {
   try {
     res.json(await customers.findCustomersByName(req.user.id, req.query.name));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
+ * /api/customers/export:
+ *   get:
+ *     tags: [Customers]
+ *     summary: Export the logged-in user's customers to Excel (.xlsx)
+ *     description: |
+ *       Downloads a workbook with one "Customers" sheet (Customer ID, Name, Email, Phone, City, Created)
+ *       containing only the logged-in user's customers. Uses the same filter as `GET /api/customers?search=`.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Optional case-insensitive filter on name, email, phone or city
+ *     responses:
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ *       200:
+ *         description: The Excel file (attachment customers_YYYY-MM-DD.xlsx)
+ *         headers:
+ *           X-Export-Count:
+ *             description: Number of customers in the file
+ *             schema: { type: integer }
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema: { type: string, format: binary }
+ */
+// Must stay above "/:id", or "export" would be parsed as a customer id.
+router.get("/export", async (req, res, next) => {
+  try {
+    // The same scoped query as the list: only the logged-in user's customers.
+    const rows = await customers.listCustomers(req.user.id, req.query.search);
+    const file = await buildCustomersWorkbook(rows, { author: req.user.name });
+    const date = new Date().toISOString().slice(0, 10);
+    res.set({
+      "Content-Type": XLSX_TYPE,
+      "Content-Disposition": `attachment; filename="customers_${date}.xlsx"`,
+      // Personal data: don't let browsers or proxies keep a copy.
+      "Cache-Control": "no-store",
+      "X-Export-Count": String(rows.length),
+    });
+    res.send(file);
   } catch (err) {
     next(err);
   }

@@ -91,6 +91,7 @@ Everything under `/api/customers` and `/api/agent` needs a **sales** user's `Aut
 | GET    | `/api/admin/users`                     | Admin dashboard: `{ totals, users }` with each sales user's `customer_count` |
 | GET    | `/api/customers?search=`               | List your customers (optional filter) |
 | GET    | `/api/customers/search/by-name?name=`  | Find customers by partial name       |
+| GET    | `/api/customers/export?search=`        | Download your customers as `customers_YYYY-MM-DD.xlsx` (same filter as the list) |
 | GET    | `/api/customers/{id}`                  | Get one customer                     |
 | POST   | `/api/customers`                       | Create (`name` and unique `email` required) |
 | PUT    | `/api/customers/{id}`                  | Update provided fields               |
@@ -103,7 +104,8 @@ Everything under `/api/customers` and `/api/agent` needs a **sales** user's `Aut
 1. Open `/swagger`, run **POST /api/auth/register** (or **login**) and copy `token` from the response.
 2. Click **Authorize**, paste the token, confirm. It's kept across page reloads.
 3. The customer and agent endpoints now run as that user. Register a second user, authorize as them, and their `GET /api/customers` won't include the first user's customers; `GET/PUT/DELETE /api/customers/{id}` on those IDs returns `404`.
-4. Admin: run **POST /api/admin/login** with `admin@admin.com` / `123456789`, **Authorize** with that token, then **GET /api/admin/users**. With a sales token it returns `403`.
+4. Export: with a sales token, run **GET /api/customers/export** and use the **Download file** link. In the app, it's the **Export to Excel** button on the Customers page (it exports what the search box shows).
+5. Admin: run **POST /api/admin/login** with `admin@admin.com` / `123456789`, **Authorize** with that token, then **GET /api/admin/users**. With a sales token it returns `403`.
 
 With curl:
 

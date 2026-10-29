@@ -24,7 +24,8 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
-async function request(path, options = {}) {
+// Shared by JSON calls and file downloads: adds the token and handles 401s and API errors.
+async function send(path, options = {}) {
   const sentToken = token;
   let res;
   try {
@@ -39,11 +40,33 @@ async function request(path, options = {}) {
   } catch {
     throw new Error(`Cannot reach the API at ${API_URL}. Is the backend running?`);
   }
-  const data = await res.json().catch(() => null);
   // A 401 on a request that carried a token means the session is no longer valid.
   if (res.status === 401 && sentToken) onUnauthorized();
-  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
-  return data;
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || `Request failed (${res.status})`);
+  }
+  return res;
+}
+
+async function request(path, options) {
+  const res = await send(path, options);
+  return res.json().catch(() => null);
+}
+
+// The export needs the bearer token, so it's fetched as a Blob instead of opened as a link.
+async function exportCustomers(search) {
+  const res = await send(`/api/customers/export${search ? `?search=${encodeURIComponent(search)}` : ""}`);
+  const blob = await res.blob();
+  const filename =
+    /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "customers.xlsx";
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return { filename, count: Number(res.headers.get("X-Export-Count") ?? 0) };
 }
 
 export const api = {
@@ -58,5 +81,6 @@ export const api = {
   createCustomer: (data) => request("/api/customers", { method: "POST", body: data }),
   updateCustomer: (id, data) => request(`/api/customers/${id}`, { method: "PUT", body: data }),
   deleteCustomer: (id) => request(`/api/customers/${id}`, { method: "DELETE" }),
+  exportCustomers,
   chat: (message, history) => request("/api/agent/chat", { method: "POST", body: { message, history } }),
 };
