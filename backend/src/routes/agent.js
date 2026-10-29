@@ -9,9 +9,10 @@ const router = Router();
  * /api/agent/chat:
  *   post:
  *     tags: [Agent]
+ *     security: [{ bearerAuth: [] }]
  *     summary: Ask a natural-language question about customers
  *     description: |
- *       Claude answers using tools that read and modify the customer table.
+ *       Claude answers using tools that read and modify the logged-in user's customers only.
  *       Examples: "Get all customers", "Find the customer named Kannan",
  *       "Add a customer named Sara Ali with email sara@example.com".
  *     requestBody:
@@ -53,6 +54,7 @@ const router = Router();
  *                 dataChanged: { type: boolean }
  *       400:
  *         description: Missing message
+ *       401: { $ref: '#/components/responses/Unauthorized' }
  *       503:
  *         description: Anthropic API key not configured
  */
@@ -62,7 +64,7 @@ router.post("/chat", async (req, res, next) => {
     return res.status(400).json({ error: "message is required" });
   }
   try {
-    res.json(await runAgent(message.trim(), Array.isArray(history) ? history : []));
+    res.json(await runAgent(message.trim(), Array.isArray(history) ? history : [], req.user));
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError) {
       return res.status(503).json({ error: "Invalid Anthropic API key" });

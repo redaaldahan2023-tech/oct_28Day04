@@ -118,7 +118,7 @@ export default function CustomersPage({ notify, dataVersion }) {
       <header className="page-header">
         <div>
           <h1>Customers</h1>
-          <p className="muted">Create, view, update and delete customer records.</p>
+          <p className="muted">Create, view, update and delete the customers assigned to you.</p>
         </div>
         <button className="btn primary" onClick={() => setEditing({})}>
           <PlusIcon /> Add customer

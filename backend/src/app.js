@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import { swaggerSpec, swaggerHtml } from "./swagger.js";
 import { query } from "./db.js";
+import { requireAuth, authConfigured } from "./auth.js";
+import authRoutes from "./routes/auth.js";
 import customerRoutes from "./routes/customers.js";
 import agentRoutes from "./routes/agent.js";
 
@@ -36,11 +38,18 @@ app.get("/api/health", async (_req, res) => {
   } catch {
     database = "unreachable";
   }
-  res.json({ status: "ok", database, agentConfigured: Boolean(process.env.ANTHROPIC_API_KEY) });
+  res.json({
+    status: "ok",
+    database,
+    authConfigured: authConfigured(),
+    agentConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+  });
 });
 
-app.use("/api/customers", customerRoutes);
-app.use("/api/agent", agentRoutes);
+app.use("/api/auth", authRoutes);
+// Everything below requires a logged-in user; req.user scopes every query.
+app.use("/api/customers", requireAuth, customerRoutes);
+app.use("/api/agent", requireAuth, agentRoutes);
 
 app.get("/", (_req, res) => res.redirect("/swagger"));
 

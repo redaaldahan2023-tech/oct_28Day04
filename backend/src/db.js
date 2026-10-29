@@ -1,9 +1,13 @@
 import pg from "pg";
 
-// Render-hosted PostgreSQL requires SSL.
+// Render-hosted PostgreSQL requires SSL; a local server usually doesn't support it.
+// SSL is off for localhost URLs or when DATABASE_SSL=false.
+const isLocal = /@(localhost|127\.0\.0\.1)(:|\/)/.test(process.env.DATABASE_URL ?? "");
+const useSsl = process.env.DATABASE_SSL ? process.env.DATABASE_SSL !== "false" : !isLocal;
+
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
   max: 5,
   // Serverless functions are frozen between requests while Render closes idle
   // connections, so don't keep connections around for long.

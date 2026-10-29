@@ -952,3 +952,98 @@ tbody tr:last-child td {
     max-width: 100%;
   }
 }
+
+/* ---------- Auth ---------- */
+.auth-screen {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  animation: pop 0.2s ease-out;
+}
+
+.auth-brand {
+  padding: 0 0 4px;
+}
+
+.auth-brand .brand-name {
+  color: var(--text);
+}
+
+.auth-brand .brand-sub {
+  color: var(--muted);
+}
+
+.auth-submit {
+  justify-content: center;
+  padding: 10px 14px;
+}
+
+.auth-switch {
+  margin: 0;
+  text-align: center;
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.user-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.user-name {
+  color: #fff;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role {
+  text-transform: capitalize;
+}
+
+.logout-btn {
+  padding: 4px 8px;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 6px;
+  background: none;
+  color: var(--sidebar-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: rgb(255 255 255 / 0.08);
+}

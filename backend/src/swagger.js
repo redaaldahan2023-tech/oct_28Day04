@@ -13,12 +13,16 @@ export const swaggerSpec = swaggerJsdoc({
       version: "1.0.0",
       description:
         "CRUD operations on the PostgreSQL `customer` table, plus a Claude-powered agent " +
-        "endpoint that answers natural-language questions about customers. No authentication required.",
+        "endpoint that answers natural-language questions about customers.\n\n" +
+        "**Authentication:** call `POST /api/auth/register` or `POST /api/auth/login`, copy the `token`, " +
+        "click **Authorize** and paste it. Customer and agent endpoints then run as that user and only " +
+        "see or change that user's customers; another user's customer returns 404.",
     },
     // Relative URL so "Try it out" calls whichever host serves the docs (localhost or Vercel).
     servers: [{ url: "/" }],
     tags: [
-      { name: "Customers", description: "Customer CRUD" },
+      { name: "Auth", description: "Registration and login" },
+      { name: "Customers", description: "Customer CRUD, scoped to the logged-in user" },
       { name: "Agent", description: "Natural-language assistant" },
       { name: "System", description: "Health checks" },
     ],
@@ -48,6 +52,7 @@ export const swaggerHtml = `<!doctype html>
         deepLinking: true,
         presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
         layout: "StandaloneLayout",
+        persistAuthorization: true,
       });
     </script>
   </body>

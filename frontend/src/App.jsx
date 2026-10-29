@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, API_URL } from "./api.js";
+import { api, API_URL, hasToken, setToken, setUnauthorizedHandler } from "./api.js";
+import AuthPage from "./components/AuthPage.jsx";
 import CustomersPage from "./components/CustomersPage.jsx";
 import ChatPage from "./components/ChatPage.jsx";
 import { ChatIcon, UsersIcon } from "./components/Icons.jsx";
@@ -10,6 +11,8 @@ const NAV = [
 ];
 
 export default function App() {
+  // undefined while restoring the session, null when logged out.
+  const [user, setUser] = useState(undefined);
   const [page, setPage] = useState("customers");
   const [health, setHealth] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -22,6 +25,32 @@ export default function App() {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
   }, []);
 
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setPage("customers");
+  }, []);
+
+  const onAuthenticated = ({ user, token }) => {
+    setToken(token);
+    setUser(user);
+  };
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout();
+      notify("Your session has expired. Please sign in again.", "error");
+    });
+    if (!hasToken()) {
+      setUser(null);
+      return;
+    }
+    api
+      .me()
+      .then((res) => setUser(res.user))
+      .catch(() => logout());
+  }, [logout, notify]);
+
   useEffect(() => {
     const check = () => api.health().then(setHealth).catch(() => setHealth({ status: "down" }));
     check();
@@ -30,6 +59,27 @@ export default function App() {
   }, []);
 
   const online = health?.status === "ok" && health?.database === "ok";
+
+  const toastList = (
+    <div className="toasts" role="status">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast ${t.type}`}>
+          {t.message}
+        </div>
+      ))}
+    </div>
+  );
+
+  if (user === undefined) return <div className="auth-screen muted">Loading…</div>;
+
+  if (!user) {
+    return (
+      <>
+        <AuthPage onAuthenticated={onAuthenticated} />
+        {toastList}
+      </>
+    );
+  }
 
   return (
     <div className="layout">
@@ -54,6 +104,16 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <div className="user-badge">
+            <div className="avatar">{user.name.charAt(0).toUpperCase()}</div>
+            <div className="user-info">
+              <div className="user-name">{user.name}</div>
+              <div className="user-role">{user.role}</div>
+            </div>
+            <button className="logout-btn" onClick={logout}>
+              Log out
+            </button>
+          </div>
           <div className="status">
             <span className={`dot ${health === null ? "" : online ? "ok" : "bad"}`} />
             {health === null ? "Checking API…" : online ? "API connected" : "API unavailable"}
@@ -67,7 +127,8 @@ export default function App() {
         </div>
       </aside>
 
-      <main className="main">
+      {/* Keyed by user so a different login starts with fresh pages and an empty chat. */}
+      <main className="main" key={user.user_id}>
         {/* Both pages stay mounted so the chat history survives switching tabs. */}
         <div hidden={page !== "customers"}>
           <CustomersPage notify={notify} dataVersion={dataVersion} />
@@ -77,13 +138,7 @@ export default function App() {
         </div>
       </main>
 
-      <div className="toasts" role="status">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.type}`}>
-            {t.message}
-          </div>
-        ))}
-      </div>
+      {toastList}
     </div>
   );
 }

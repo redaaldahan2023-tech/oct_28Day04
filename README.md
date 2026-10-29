@@ -7,7 +7,9 @@ Two projects that run on separate ports:
 | `backend/`  | Node.js, Express 5, PostgreSQL (`pg`), Swagger, Anthropic SDK | http://localhost:4000           |
 | `frontend/` | React 19 + Vite                                          | http://localhost:5173           |
 
-Swagger UI: **http://localhost:4000/swagger** (raw spec at `/swagger.json`). No authentication.
+Swagger UI: **http://localhost:4000/swagger** (raw spec at `/swagger.json`).
+
+Users register and log in; every user has the role `sales` and sees and manages only the customers assigned to them — in the UI, the REST API and the AI assistant.
 
 ## Setup
 
@@ -15,7 +17,8 @@ Swagger UI: **http://localhost:4000/swagger** (raw spec at `/swagger.json`). No 
 # 1. Backend
 cd backend
 npm install
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
+# edit .env: DATABASE_URL, JWT_SECRET, ANTHROPIC_API_KEY
+npm run migrate    # once: creates app_user and adds customer.sales_user_id (safe to re-run)
 npm run dev        # or: npm start
 
 # 2. Frontend (second terminal)
@@ -29,7 +32,10 @@ npm run dev
 | Variable            | Purpose                                                    |
 | ------------------- | ---------------------------------------------------------- |
 | `PORT`              | API port (default 4000)                                    |
-| `DATABASE_URL`      | PostgreSQL connection string (Render, SSL enabled)         |
+| `DATABASE_URL`      | PostgreSQL connection string (Render or local)             |
+| `DATABASE_SSL`      | Optional. SSL is off for `localhost` URLs and on otherwise; set `false`/`true` to override |
+| `JWT_SECRET`        | Required. Long random string that signs login tokens       |
+| `JWT_EXPIRES_IN`    | Token lifetime, defaults to `8h`                           |
 | `ANTHROPIC_API_KEY` | Required for the `/api/agent/chat` endpoint                |
 | `ANTHROPIC_MODEL`   | Defaults to `claude-opus-5-5`                              |
 | `AGENT_EFFORT`      | Agent effort level (`low`–`max`), defaults to `medium`     |
@@ -50,6 +56,7 @@ The repo holds two apps, so create **two Vercel projects** from the same GitHub 
   | ------------------- | ---------------------------------------------------------- |
   | `DATABASE_URL`      | your PostgreSQL connection string                          |
   | `ANTHROPIC_API_KEY` | your Anthropic key                                         |
+  | `JWT_SECRET`        | a long random string (different from local)                |
   | `CORS_ORIGIN`       | the frontend URL, e.g. `https://your-frontend.vercel.app` (use `*` until you know it) |
 
 - After deploying, check `https://<backend>.vercel.app/api/health` and `https://<backend>.vercel.app/swagger`.
@@ -69,16 +76,35 @@ How it works: `backend/api/index.js` exports the Express app as a serverless fun
 
 ## API
 
+Everything under `/api/customers` and `/api/agent` needs `Authorization: Bearer <token>`. Another user's customer answers `404`, the same as one that doesn't exist.
+
 | Method | Path                                   | Description                          |
 | ------ | -------------------------------------- | ------------------------------------ |
-| GET    | `/api/customers?search=`               | List customers (optional filter)     |
+| POST   | `/api/auth/register`                   | Create a `sales` user → `{ user, token }` |
+| POST   | `/api/auth/login`                      | Log in → `{ user, token }`           |
+| GET    | `/api/auth/me`                         | The logged-in user                   |
+| GET    | `/api/customers?search=`               | List your customers (optional filter) |
 | GET    | `/api/customers/search/by-name?name=`  | Find customers by partial name       |
 | GET    | `/api/customers/{id}`                  | Get one customer                     |
 | POST   | `/api/customers`                       | Create (`name` and unique `email` required) |
 | PUT    | `/api/customers/{id}`                  | Update provided fields               |
 | DELETE | `/api/customers/{id}`                  | Delete                               |
 | POST   | `/api/agent/chat`                      | Natural-language assistant           |
-| GET    | `/api/health`                          | API / DB / agent status              |
+| GET    | `/api/health`                          | API / DB / auth / agent status       |
+
+### Testing authentication in Swagger UI
+
+1. Open `/swagger`, run **POST /api/auth/register** (or **login**) and copy `token` from the response.
+2. Click **Authorize**, paste the token, confirm. It's kept across page reloads.
+3. The customer and agent endpoints now run as that user. Register a second user, authorize as them, and their `GET /api/customers` won't include the first user's customers; `GET/PUT/DELETE /api/customers/{id}` on those IDs returns `404`.
+
+With curl:
+
+```bash
+TOKEN=$(curl -s -X POST localhost:4000/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"reda@example.com","password":"Passw0rd!"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+curl -s localhost:4000/api/customers -H "Authorization: Bearer $TOKEN"
+```
 
 ### Agent
 
@@ -87,5 +113,9 @@ Claude runs a tool-use loop over these tools, which call the same service layer 
 `get_all_customers`, `get_customer_by_name`, `get_customer_by_id`, `add_customer`, `update_customer`, `delete_customer`.
 The response includes `reply` (markdown), `toolCalls`, and `dataChanged` (the frontend uses this to refresh the table).
 
-Table: `customer(id serial primary key, name varchar(100) not null, email varchar(150) not null unique, phone varchar(20), city varchar(50), created_at default now())`.
-The API returns the primary key as `customer_id`.
+Tables (see `backend/db/migrations/001_auth.sql`):
+
+- `app_user(id serial primary key, name, email unique, password_hash, role default 'sales', created_at)` — returned as `user_id`; the hash is never returned.
+- `customer(id serial primary key, name varchar(100) not null, email varchar(150) not null unique, phone varchar(20), city varchar(50), created_at default now(), sales_user_id references app_user)` — returned as `customer_id`.
+
+Customers that existed before the migration have no `sales_user_id` and are visible to no one. To give them to a user: `UPDATE customer SET sales_user_id = <user id> WHERE sales_user_id IS NULL;`

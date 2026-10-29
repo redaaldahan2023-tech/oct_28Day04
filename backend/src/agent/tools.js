@@ -1,6 +1,8 @@
 import * as customers from "../services/customerService.js";
 
 // Tool definitions exposed to Claude. Each one maps to a customerService call.
+// No tool takes an owner or user field: the server passes the logged-in user to every
+// handler, so the model can only ever reach that user's customers.
 export const tools = [
   {
     name: "get_all_customers",
@@ -81,21 +83,24 @@ export const tools = [
 ];
 
 const handlers = {
-  get_all_customers: () => customers.listCustomers(),
-  get_customer_by_name: ({ name }) => customers.findCustomersByName(name),
-  get_customer_by_id: async ({ customer_id }) =>
-    (await customers.getCustomerById(customer_id)) ?? { error: "Customer not found" },
-  add_customer: (input) => customers.createCustomer(input),
-  update_customer: async ({ customer_id, ...fields }) =>
-    (await customers.updateCustomer(customer_id, fields)) ?? { error: "Customer not found" },
-  delete_customer: async ({ customer_id }) =>
-    (await customers.deleteCustomer(customer_id)) ?? { error: "Customer not found" },
+  get_all_customers: (userId) => customers.listCustomers(userId),
+  get_customer_by_name: (userId, { name }) => customers.findCustomersByName(userId, name),
+  get_customer_by_id: async (userId, { customer_id }) =>
+    (await customers.getCustomerById(userId, customer_id)) ?? { error: "Customer not found" },
+  add_customer: (userId, { name, email, phone, city }) =>
+    customers.createCustomer(userId, { name, email, phone, city }),
+  update_customer: async (userId, { customer_id, name, email, phone, city }) =>
+    (await customers.updateCustomer(userId, customer_id, { name, email, phone, city })) ?? {
+      error: "Customer not found",
+    },
+  delete_customer: async (userId, { customer_id }) =>
+    (await customers.deleteCustomer(userId, customer_id)) ?? { error: "Customer not found" },
 };
 
 export const MUTATING_TOOLS = new Set(["add_customer", "update_customer", "delete_customer"]);
 
-export async function executeTool(name, input) {
+export async function executeTool(name, input, user) {
   const handler = handlers[name];
   if (!handler) throw new Error(`Unknown tool: ${name}`);
-  return handler(input ?? {});
+  return handler(user.id, input ?? {});
 }

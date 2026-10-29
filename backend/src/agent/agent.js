@@ -9,7 +9,7 @@ const FALLBACK = MODEL.startsWith("claude-haiku")
   ? {}
   : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
 
-const SYSTEM_PROMPT = `You are a helpful assistant for a customer management application.
+const BASE_PROMPT = `You are a helpful assistant for a customer management application.
 You answer questions about customer data and perform actions using the provided tools, which read
 from and write to the live PostgreSQL "customer" table (fields: customer_id, name, email, phone, city, created_at).
 Every customer must have a unique email.
@@ -18,6 +18,14 @@ Every customer must have a unique email.
 - When several customers match a name, list them and ask which one is meant before updating or deleting.
 - Present lists of customers as a markdown table. Keep answers concise.
 - If a tool returns an error, explain it plainly to the user.`;
+
+// The tools enforce access control; this only tells the model whose data it is working with.
+function systemPrompt(user) {
+  return `${BASE_PROMPT}
+
+You are assisting ${user.name} (role: ${user.role}). The tools only return and modify customers
+assigned to this salesperson. If a customer cannot be found, say it was not found among their customers.`;
+}
 
 let client;
 function getClient() {
@@ -34,8 +42,9 @@ function getClient() {
  * Run one chat turn through a manual tool-use loop.
  * @param {string} message  The new user message.
  * @param {{role: "user"|"assistant", content: string}[]} history  Prior text-only turns.
+ * @param {{id: number, name: string, role: string}} user  The logged-in user; scopes every tool call.
  */
-export async function runAgent(message, history = []) {
+export async function runAgent(message, history, user) {
   const anthropic = getClient();
 
   const messages = [
@@ -51,7 +60,7 @@ export async function runAgent(message, history = []) {
     const response = await anthropic.beta.messages.create({
       model: MODEL,
       max_tokens: 16000,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt(user),
       tools,
       messages,
       output_config: { effort: EFFORT },
@@ -85,8 +94,9 @@ export async function runAgent(message, history = []) {
     const results = await Promise.all(
       toolUses.map(async (tu) => {
         try {
-          const output = await executeTool(tu.name, tu.input);
-          toolCalls.push({ name: tu.name, input: tu.input });
+          const output = await executeTool(tu.name, tu.input, user);
+          // A "not found" result (including another user's customer) didn't change anything.
+          toolCalls.push(output?.error ? { name: tu.name, input: tu.input, error: output.error } : { name: tu.name, input: tu.input });
           return { type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(output) };
         } catch (err) {
           toolCalls.push({ name: tu.name, input: tu.input, error: err.message });
